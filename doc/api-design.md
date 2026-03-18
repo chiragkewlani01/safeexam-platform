@@ -2,13 +2,44 @@
 
 ---
 
+## Versioning
+
+All APIs are versioned under `/api/v1/`.
+
+---
+
+## Session APIs
+
+### Start Exam Session
+
+```http
+POST /api/v1/sessions/start
+```
+
+### Get Current Session
+
+```http
+GET /api/v1/sessions/current
+```
+
+---
+
+## Middleware Concept
+
+Use dependency injection for authentication and role-based access:
+
+- `Depends(get_current_user)`
+- `Depends(require_role("admin"))`
+
+---
+
 ## 🧠 Overview
 
 SafeExam backend follows a **RESTful API architecture** built using FastAPI.
 
 * Stateless APIs
 * JSON-based communication
-* JWT authentication
+* httpOnly cookies for authentication
 * Strict validation using Pydantic
 
 ---
@@ -38,7 +69,7 @@ server/app/api/
 3. Frontend sends token:
 
 ```http
-POST /api/auth/google
+POST /api/v1/auth/google
 ```
 
 ### Request
@@ -54,13 +85,12 @@ POST /api/auth/google
 * Verify token with Google
 * Check user in DB
 * Create if not exists
-* Issue JWT
+* Set httpOnly cookie (secure, SameSite=strict)
 
 ### Response
 
 ```json
 {
-  "access_token": "jwt_token",
   "user": {
     "id": 1,
     "role": "student"
@@ -73,7 +103,7 @@ POST /api/auth/google
 ### Admin Login
 
 ```http
-POST /api/auth/admin-login
+POST /api/v1/auth/admin-login
 ```
 
 ---
@@ -85,7 +115,7 @@ POST /api/auth/admin-login
 ### Create Exam (Admin)
 
 ```http
-POST /api/exams
+POST /api/v1/exams
 ```
 
 ### Body
@@ -103,7 +133,7 @@ POST /api/exams
 ### Get Exams
 
 ```http
-GET /api/exams?page=1&limit=20
+GET /api/v1/exams?page=1&limit=20
 ```
 
 ---
@@ -111,7 +141,7 @@ GET /api/exams?page=1&limit=20
 ### Join Exam (Student)
 
 ```http
-POST /api/exams/join
+POST /api/v1/exams/join
 ```
 
 ```json
@@ -129,18 +159,18 @@ POST /api/exams/join
 ### Autosave Answer
 
 ```http
-POST /api/responses/save
+POST /api/v1/responses/save
 ```
 
 ```json
 {
-  "exam_id": 1,
+  "session_id": 1,
   "question_id": 10,
-  "answer": "A"
+  "selected_option": "A"
 }
 ```
 
-✔ Called frequently
+✔ Called frequently (rate limited to 5 req/sec)
 ✔ Lightweight
 
 ---
@@ -148,12 +178,12 @@ POST /api/responses/save
 ### Final Submit
 
 ```http
-POST /api/responses/submit
+POST /api/v1/responses/submit
 ```
 
 ```json
 {
-  "exam_id": 1
+  "session_id": 1
 }
 ```
 
@@ -172,15 +202,16 @@ POST /api/responses/submit
 ### Get Result (Student)
 
 ```http
-GET /api/results/{exam_id}
+GET /api/v1/results/{session_id}
 ```
 
 ---
 
-### Get All Results (Admin)
+
+### Get All Results (Admin, Paginated)
 
 ```http
-GET /api/results?exam_id=1
+GET /api/v1/results?exam_id=1&page=1&limit=20
 ```
 
 ---
@@ -192,12 +223,12 @@ GET /api/results?exam_id=1
 ### Log Activity
 
 ```http
-POST /api/monitoring/log
+POST /api/v1/monitoring/log
 ```
 
 ```json
 {
-  "exam_id": 1,
+  "session_id": 1,
   "event": "TAB_SWITCH",
   "timestamp": "2026-03-18T10:00:00Z"
 }
@@ -205,144 +236,32 @@ POST /api/monitoring/log
 
 ---
 
-### Backend Logic
+## Backend Responsibilities
 
-* Count violations
-* Store logs
-* Trigger actions
-
----
-
-### Example Rule
-
-```text
-1–2 switches → warning
-3–4 → flag
-5+ → auto-submit exam
-```
+* Validate user and session
+* Store log
+* Update violation count (debounced, no reset during exam)
+* Decide action
 
 ---
 
-## 🔐 Security Design
+# ⚠️ Global Improvements
+
+- **Rate Limiting:** Autosave → 5 req/sec max
+- **Monitoring:** Debounced (2–3 sec)
+- **Naming Fix:** `/api/exams/start` → `/api/v1/sessions/start`
+- **Session-centric:** All flows use `session_id`
 
 ---
 
-### 1. JWT Authentication
+# 🧠 FINAL ARCHITECTURE
 
-* All protected routes require:
-
-```http
-Authorization: Bearer <token>
-```
-
----
-
-### 2. Validation (Pydantic)
-
-All requests validated before processing.
-
----
-
-### 3. Rate Limiting
-
-* Prevent spam (autosave, monitoring APIs)
-
----
-
-### 4. Backend Validation
-
-Never trust frontend:
-
-* Check exam active
-* Check user eligibility
-* Check submission state
-
----
-
-## 📦 Response Format
-
----
-
-### Success
-
-```json
-{
-  "success": true,
-  "data": {...}
-}
-```
-
----
-
-### Error
-
-```json
-{
-  "success": false,
-  "message": "Error message"
-}
-```
-
----
-
-## ⚡ HTTP Status Codes
-
-| Code | Meaning          |
-| ---- | ---------------- |
-| 200  | Success          |
-| 201  | Created          |
-| 400  | Bad request      |
-| 401  | Unauthorized     |
-| 403  | Forbidden        |
-| 404  | Not found        |
-| 422  | Validation error |
-| 500  | Server error     |
-
----
-
-## 🔄 Request Lifecycle
-
-```text
-Client Request
-   ↓
-API Route (FastAPI)
-   ↓
-Pydantic Validation
-   ↓
-Service Layer
-   ↓
-Database
-   ↓
-Response
-```
-
----
-
-## 🧠 Best Practices
-
-* Keep APIs small and focused
-* Use consistent naming
-* Always validate input
-* Never expose internal logic
-
----
-
-## 🚀 Future Enhancements
-
-* WebSocket-based monitoring
-* GraphQL (optional)
-* API versioning
-* Caching layer
-
----
-
-## 📌 Summary
-
-SafeExam APIs are:
-
-* RESTful
-* Secure
-* Scalable
-* Designed for real-time interaction
-
-They ensure reliable exam flow, secure submissions, and efficient monitoring.
+User  
+↓  
+Session (CORE)  
+↓  
+Responses + Monitoring  
+↓  
+Evaluation  
+↓  
+Result

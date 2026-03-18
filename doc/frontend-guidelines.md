@@ -411,12 +411,25 @@ Footer → Submit
 
 # 🚀 14. Future Enhancements
 
----
 
 * Design system tokens (central config)
 * Component library expansion
 * Theme customization
 * Accessibility improvements
+
+---
+
+# 🖼️ Layout System
+
+- `AuthLayout`
+- `DashboardLayout`
+- `ExamLayout`
+
+# ⏳ Loading + Error States
+
+- Skeleton loaders
+- Empty states
+- Error fallback UI
 
 ---
 

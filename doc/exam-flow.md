@@ -26,6 +26,18 @@ Login → Dashboard → Join Exam → Instructions → Start Exam
 
 ---
 
+## Session Binding
+
+Every exam request includes `session_id`.
+
+---
+
+## Timer Sync
+
+Frontend syncs timer every 15–20 seconds with backend. Timer is backend-controlled.
+
+---
+
 # 🎯 2. Pre-Exam Phase
 
 ---
@@ -37,7 +49,7 @@ Login → Dashboard → Join Exam → Instructions → Start Exam
 ```text
 Student enters exam code / URL
         ↓
-POST /api/exams/join
+POST /api/v1/exams/join
         ↓
 Backend validates:
   - exam exists
@@ -78,7 +90,7 @@ Student clicks **"Start Exam"**
 ### Backend Call
 
 ```http
-POST /api/exams/start
+POST /api/v1/sessions/start
 ```
 
 ---
@@ -94,7 +106,7 @@ POST /api/exams/start
 ### Timer Behavior
 
 * Timer starts ONLY after clicking start
-* Stored on backend (not frontend)
+* Stored and controlled on backend (not frontend)
 
 ---
 
@@ -115,7 +127,7 @@ POST /api/exams/start
 ### API
 
 ```http
-GET /api/exams/{exam_id}/questions
+GET /api/v1/sessions/{session_id}/questions
 ```
 
 ---
@@ -145,264 +157,57 @@ GET /api/exams/{exam_id}/questions
 ```text
 User selects answer
         ↓
-POST /api/responses/save
+POST /api/v1/responses/save
 ```
 
 ---
 
 ### 2. Periodic Sync
 
-* Every 10–15 seconds:
+* Every 15–20 seconds:
 
   * send unsaved answers
 
 ---
 
-### Benefits
-
-* Prevent data loss
-* Handle network issues
-* Ensure consistency
+# 📝 4. Submit & Evaluation
 
 ---
 
-## 3.4 Monitoring Integration
-
-During exam:
-
-* Track events:
-
-  * tab switch
-  * window blur
+### Submit
 
 ```http
-POST /api/monitoring/log
+POST /api/v1/responses/submit
+```
+
+```json
+{
+  "session_id": 1
+}
 ```
 
 ---
 
-### UI Behavior
+### Backend Logic
 
-* Show warnings
-* Continue exam unless threshold crossed
-
----
-
-# 🔄 4. Resume Logic (IMPORTANT)
+* Fetch all saved answers for session
+* Evaluate
+* Store result
 
 ---
 
-## Trigger
+# 🧩 5. Resume & Edge Cases
 
-* Page refresh
-* Network disconnect
-* Browser crash
-
----
-
-## Flow
-
-```text
-Student reloads page
-        ↓
-GET /api/exams/session
-        ↓
-Backend returns:
-  - remaining time
-  - saved answers
-        ↓
-Resume exam
-```
+* Session can be resumed if not completed/terminated
+* All actions require valid `session_id`
+* Timer always validated against backend
 
 ---
 
-## Rules
+# 🛡️ 6. Security & Monitoring
 
-* Resume only if:
-
-  * exam is active
-  * time is remaining
-
----
-
-## Important
-
-* Timer always controlled by backend
-* Prevent cheating via refresh
+* All monitoring and activity logs use `session_id`
+* Debounce logic for monitoring (2–3 sec)
+* Violation count does NOT reset during exam
 
 ---
-
-# ⏱ 5. Timer System
-
----
-
-## Source of Truth → Backend
-
----
-
-## Behavior
-
-* Timer stored on server
-* Frontend displays synced time
-* Cannot be manipulated by client
-
----
-
-## Auto Expiry
-
-```text
-If time <= 0 → auto-submit
-```
-
----
-
-# 📤 6. Submission Phase
-
----
-
-## 6.1 Manual Submission
-
-```http
-POST /api/responses/submit
-```
-
----
-
-## 6.2 Auto Submission
-
-Triggered when:
-
-* Timer expires
-* Violation threshold exceeded
-
----
-
-## Backend Logic
-
-```text
-Fetch all answers
-        ↓
-Evaluate (MCQ auto)
-        ↓
-Store result
-        ↓
-Mark exam completed
-```
-
----
-
-## Important
-
-* Submission handled server-side
-* Prevent duplicate submissions
-
----
-
-# 📊 7. Result Phase
-
----
-
-## Student View
-
-```http
-GET /api/results/{exam_id}
-```
-
----
-
-## Behavior
-
-* Show:
-
-  * score
-  * basic performance
-
----
-
-## Admin View
-
-* All student results
-* Export (future)
-
----
-
-# ⚠️ 8. Edge Cases (VERY IMPORTANT)
-
----
-
-## 8.1 Network Failure
-
-* Autosave ensures data persistence
-* Resume restores session
-
----
-
-## 8.2 Refresh / Reload
-
-* Resume allowed
-* Timer continues from backend
-
----
-
-## 8.3 Multiple Tabs
-
-* Logged as violation
-* Counted in monitoring system
-
----
-
-## 8.4 Duplicate Submission
-
-* Backend prevents second submit
-
----
-
-## 8.5 Expired Exam Code
-
-* Join request rejected
-
----
-
-# 🔐 9. Security Rules
-
----
-
-* Never trust frontend timer
-* Validate exam state on every request
-* Ensure user is authorized
-* Prevent replay attacks
-
----
-
-# 🧠 10. Design Principles
-
----
-
-* Fault-tolerant (resume supported)
-* Secure (backend-controlled)
-* User-friendly (autosave + warnings)
-* Scalable (stateless APIs)
-
----
-
-# 🚀 11. Future Enhancements
-
----
-
-* Live progress tracking
-* AI-based evaluation
-* Offline mode support
-* Advanced analytics
-
----
-
-# 📌 Summary
-
-SafeExam exam flow ensures:
-
-* Smooth user experience
-* No data loss (autosave + resume)
-* Strong backend control
-* Secure and fair examination
-
-This design makes the system robust, scalable, and reliable for real-world usage.

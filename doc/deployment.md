@@ -1,225 +1,82 @@
-# Deployment & Setup Guide — SafeExam
+# Deployment Guide — SafeExam
 
 ---
 
 ## 🧠 Overview
 
-This document explains how to **set up and run SafeExam locally** for development.
-
-The project consists of:
-
-* Frontend → Next.js (client/)
-* Backend → FastAPI (server/)
-* Database → PostgreSQL (Neon DB)
+SafeExam is designed for secure, scalable deployment using FastAPI (backend), Next.js (frontend), and PostgreSQL (Neon DB).
 
 ---
 
-# ⚙️ 1. Prerequisites
+## 1. Backend Deployment (FastAPI)
+
+* Use Uvicorn or Gunicorn for production
+* Set environment variables for DB, secrets, etc.
 
 ---
 
-## Required Tools
+## 2. Frontend Deployment (Next.js)
 
-* Node.js (v18+)
-* Python (v3.10+)
-* Git
+* Deploy on Vercel, Netlify, or any Node.js-compatible host
 
 ---
 
-# 📦 2. Project Setup
+## 3. Database (Neon DB)
+
+* Provision database and set credentials in backend
 
 ---
 
-## Clone Repository
+## 4. CORS Configuration (FastAPI)
 
-```bash
-git clone https://github.com/your-repo/safe-exam.git
-cd safe-exam
+Add the following to your FastAPI app:
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-frontend-domain.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
 ---
 
-# 🖥️ 3. Frontend Setup (client/)
+## 5. Environment Variables
+
+* Store secrets and config in environment variables
 
 ---
 
-```bash
-cd client
-npm install
+## 6. HTTPS
+
+* Always use HTTPS in production
+* Set Secure flag on all cookies
+
+---
+
+## 7. Monitoring & Logging
+
+* Enable backend logging
+* Monitor error rates and performance
+
+---
+
+## 8. Scaling
+
+* Use stateless containers for backend
+* Use managed DB for scaling
+
+
+## 9. Health Check
+
+Add a health check endpoint to your FastAPI app:
+
+```python
+@app.get("/api/v1/health")
+def health_check():
+    return {"status": "ok"}
 ```
-
----
-
-## Environment Variables
-
-Create `.env.local`
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
----
-
-## Run Frontend
-
-```bash
-npm run dev
-```
-
----
-
-## Runs on
-
-```text
-http://localhost:3000
-```
-
----
-
-# ⚙️ 4. Backend Setup (server/)
-
----
-
-```bash
-cd server
-python -m venv venv
-source venv/bin/activate   # Mac/Linux
-venv\Scripts\activate      # Windows
-```
-
----
-
-## Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Environment Variables
-
-Create `.env`
-
-```env
-DATABASE_URL=postgresql+psycopg2://user:password@host/db
-SECRET_KEY=your_secret_key
-```
-
----
-
-## Run Backend
-
-```bash
-uvicorn app.main:app --reload
-```
-
----
-
-## Runs on
-
-```text
-http://localhost:8000
-```
-
----
-
-# 🗄️ 5. Database Setup (Neon)
-
----
-
-## Steps
-
-1. Create Neon account
-2. Create PostgreSQL database
-3. Copy connection string
-4. Add to `.env`
-
----
-
-## Example
-
-```env
-DATABASE_URL=postgresql+psycopg2://user:pass@host/db
-```
-
----
-
-# 🔗 6. Connecting Frontend & Backend
-
----
-
-Ensure:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
----
-
-# 🚀 7. Running Full System
-
----
-
-## Step-by-step
-
-1. Start backend → port 8000
-2. Start frontend → port 3000
-3. Open browser → http://localhost:3000
-
----
-
-# ⚠️ 8. Common Issues
-
----
-
-## Backend not starting
-
-* Check Python version
-* Check virtual environment
-
----
-
-## DB connection error
-
-* Verify DATABASE_URL
-* Check Neon DB status
-
----
-
-## CORS issues
-
-* Enable CORS in FastAPI
-
----
-
-# 🔐 9. Basic Security Notes
-
----
-
-* Never commit `.env`
-* Use strong SECRET_KEY
-* Do not expose DB credentials
-
----
-
-# 🚀 10. Future Deployment (Not Required Now)
-
----
-
-* Frontend → Vercel
-* Backend → Render / Railway
-* Database → Neon
-
----
-
-# 📌 Summary
-
-SafeExam setup is simple:
-
-* Run backend (FastAPI)
-* Run frontend (Next.js)
-* Connect to Neon DB
-
-This setup supports fast development and easy collaboration.
-

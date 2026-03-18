@@ -1,41 +1,10 @@
-# Monitoring System — SafeExam (Anti-Cheating Architecture)
+# Monitoring & Proctoring System — SafeExam
 
 ---
 
 ## 🧠 Overview
 
-SafeExam implements a **real-time event-based monitoring system** to detect and prevent cheating during exams.
-
-The system tracks user behavior and enforces rules using a **threshold-based violation model**.
-
----
-
-## 🎯 Goals
-
-* Detect suspicious behavior
-* Prevent unfair practices
-* Maintain exam integrity
-* Log activity for audit and analysis
-
----
-
-# 🧩 1. Monitoring Architecture
-
----
-
-## Flow
-
-```text
-Frontend Event Detection
-        ↓
-Send Event to Backend API
-        ↓
-Store in activity_logs
-        ↓
-Evaluate violation count
-        ↓
-Trigger action (warning / flag / auto-submit)
-```
+SafeExam includes a robust monitoring system to ensure exam integrity and detect suspicious behavior.
 
 ---
 
@@ -85,6 +54,18 @@ document.addEventListener("visibilitychange", () => {
 
 ---
 
+## Debounce Strategy
+
+Ignore duplicate events within 2–3 seconds.
+
+---
+
+## No Reset Rule
+
+Violation count does NOT reset during exam.
+
+---
+
 # 📡 3. Monitoring API
 
 ---
@@ -92,7 +73,7 @@ document.addEventListener("visibilitychange", () => {
 ## Endpoint
 
 ```http
-POST /api/monitoring/log
+POST /api/v1/monitoring/log
 ```
 
 ---
@@ -101,7 +82,7 @@ POST /api/monitoring/log
 
 ```json
 {
-  "exam_id": 1,
+  "session_id": 1,
   "event": "TAB_SWITCH",
   "timestamp": "2026-03-18T10:00:00Z"
 }
@@ -111,9 +92,9 @@ POST /api/monitoring/log
 
 ## Backend Responsibilities
 
-* Validate user and exam
+* Validate user and session
 * Store log
-* Update violation count
+* Update violation count (debounced, no reset during exam)
 * Decide action
 
 ---
@@ -126,8 +107,7 @@ POST /api/monitoring/log
 
 ```text
 id
-user_id
-exam_id
+session_id
 event_type
 timestamp
 metadata (JSONB)
@@ -159,168 +139,8 @@ metadata (JSONB)
 
 ## Backend Logic
 
-```python
-if violations >= 5:
-    auto_submit_exam(user)
-elif violations >= 3:
-    mark_flagged(user)
-else:
-    send_warning()
-```
+* Debounce violation events (2–3 sec)
+* Do not reset violation count during exam
+* Take action based on threshold
 
 ---
-
-## Important
-
-* Threshold values configurable
-* Applied per exam session
-
----
-
-# ⚠️ 6. Warning System (Frontend)
-
----
-
-## Behavior
-
-* Show warning popup
-* Notify user about violation
-
----
-
-## Example
-
-```text
-"Warning: Do not switch tabs during the exam. Multiple violations may result in auto submission."
-```
-
----
-
-## Rules
-
-* Non-intrusive UI
-* Do not break exam flow
-
----
-
-# ⛔ 7. Auto-Submission Logic
-
----
-
-## Trigger
-
-* Violation threshold exceeded
-
----
-
-## Flow
-
-```text
-Backend triggers auto-submit
-        ↓
-Save current answers
-        ↓
-Mark exam completed
-        ↓
-Generate result
-```
-
----
-
-## Important
-
-* Must be handled server-side
-* Cannot rely on frontend
-
----
-
-# 🔐 8. Security Considerations
-
----
-
-## 8.1 Do Not Trust Frontend
-
-* Events must be validated
-* Prevent fake API calls
-
----
-
-## 8.2 Prevent Event Spamming
-
-* Apply rate limiting
-* Ignore duplicate events
-
----
-
-## 8.3 Session Validation
-
-* Ensure exam is active
-* Ensure user is authorized
-
----
-
-# ⚡ 9. Performance Optimization
-
----
-
-## Strategies
-
-* Batch events (optional future)
-* Debounce frontend triggers
-* Index logs in database
-
----
-
-# 📊 10. Post-Exam Analysis
-
----
-
-## Admin Capabilities
-
-* View activity logs
-* Identify suspicious users
-* Analyze behavior patterns
-
----
-
-## Use Cases
-
-* Cheating detection
-* Exam integrity reports
-* Audit logs
-
----
-
-# 🚀 11. Future Enhancements
-
----
-
-* Real-time admin dashboard
-* AI-based cheating detection
-* Face tracking / webcam monitoring
-* Screen recording (advanced)
-* Behavior scoring system
-
----
-
-# 🧠 12. Design Principles
-
----
-
-* Backend-controlled enforcement
-* Lightweight frontend tracking
-* Scalable logging system
-* Configurable thresholds
-
----
-
-# 📌 Summary
-
-SafeExam monitoring system:
-
-* Tracks user behavior in real-time
-* Logs all critical actions
-* Uses threshold-based enforcement
-* Ensures fair and secure examination
-
-This system forms the **core anti-cheating mechanism** of SafeExam.
