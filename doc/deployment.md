@@ -1,3 +1,8 @@
+# 10. External Services
+
+- Judge0 API (for code execution)
+    - Set API key as environment variable
+    - Ensure outbound network access to Judge0 service
 # Deployment Guide — SafeExam
 
 ---

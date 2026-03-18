@@ -1,3 +1,9 @@
+# Coding Question UI
+
+- Code editor (syntax highlighting)
+- Language selector (Python, C++, etc.)
+- Output console (shows stdout, stderr, status)
+- Submit button (triggers async execution)
 # Frontend Guidelines & Design System — SafeExam
 
 ---

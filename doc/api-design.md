@@ -1,3 +1,20 @@
+# Coding APIs
+
+```http
+POST /api/v1/code/submit
+```
+_Submit code for a coding question. Returns submission_id. Execution is async (handled by Judge0)._
+
+```http
+GET /api/v1/code/result/{submission_id}
+```
+_Get the result of a code submission (stdout, stderr, status, etc.)._
+
+---
+
+## Code Execution (Async)
+
+All code submissions are executed asynchronously using the Judge0 API. Backend sends code to Judge0, polls for result, and returns output/status to the client.
 # API Design — SafeExam (FastAPI)
 
 ---

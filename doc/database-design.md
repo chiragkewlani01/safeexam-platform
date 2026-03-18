@@ -72,6 +72,13 @@ created_at
 
 ---
 
+id (PK)
+exam_id (FK)
+question_text
+question_type (mcq/subjective)
+options (JSONB)
+correct_answer
+
 ### 3. Questions Table
 
 ```sql
@@ -80,9 +87,27 @@ questions
 id (PK)
 exam_id (FK)
 question_text
-question_type (mcq/subjective)
-options (JSONB)
-correct_answer
+question_type (mcq/coding)
+question_type_details (JSONB) -- e.g., starter code, test cases for coding
+options (JSONB) -- for mcq
+correct_answer -- for mcq/coding
+```
+### 8. Coding Submissions Table
+
+```sql
+coding_submissions
+------------------
+id (PK)
+session_id (FK)
+question_id (FK)
+code
+language
+stdout
+stderr
+execution_time
+status
+is_correct
+submitted_at
 ```
 
 ---

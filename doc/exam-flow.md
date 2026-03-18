@@ -1,3 +1,10 @@
+# Coding Question Flow
+
+1. Student submits code via UI.
+2. Backend sends code to Judge0 for execution.
+3. Judge0 executes code asynchronously.
+4. Backend polls Judge0 for result.
+5. Result (output, status) is saved and returned to student.
 # Exam Flow — SafeExam (Lifecycle & System Behavior)
 
 ---

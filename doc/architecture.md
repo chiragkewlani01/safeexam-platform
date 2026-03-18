@@ -1,3 +1,6 @@
+# Code Execution Flow
+
+Backend receives code submission → Sends to Judge0 (external code execution API) → Receives result → Stores in `coding_submissions` table → Returns result to frontend.
 # System Architecture — SafeExam
 
 SafeExam is a secure, scalable, full-stack online examination platform designed with a **security-first and API-driven architecture**. It ensures exam integrity through controlled environments, backend validation, and activity monitoring.

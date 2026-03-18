@@ -28,7 +28,7 @@
 ## server/app/api/
 
 * All API route handlers (FastAPI routers)
-
+* `code.py` — coding question submission & result APIs
 ## server/app/models/
 
 * SQLAlchemy models
