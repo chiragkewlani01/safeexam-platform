@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files
+.env*
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+
+# Misc
+*.local
+*.log
+
+# Next.js
+.next/cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Mac system files
+Icon?
+
+# Storybook
+.storybook-out/
+
+# SASS cache
+.sass-cache/
+
+# npm package lock
+package-lock.json
+
+# Optional: ignore generated shadcn/ui components if you want to regenerate
+components/ui/*
+!components/ui/index.ts

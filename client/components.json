@@ -1,0 +1,7 @@
+{
+  "style": "default",
+  "radii": ["sm", "md", "lg"],
+  "colors": ["#2563EB", "#111827", "#F9FAFB", "#E5E7EB", "#22C55E", "#EF4444", "#F59E0B", "#3B82F6"],
+  "font": "Inter",
+  "spacing": 8
+}
