@@ -13,6 +13,7 @@ export default function Navbar() {
         <Link href="/" className="font-bold text-lg text-[#2563EB] flex items-center gap-2">
           <Image src="/logo.png" alt="SafeExam Logo" width={130} height={130} className="rounded-sm" />
         </Link>
+        {/* Only show these if logged in and role matches */}
         {user?.role === "admin" && (
           <Link href="/admin/create-exam" className="ml-4 text-sm font-medium">Create Exam</Link>
         )}
@@ -22,15 +23,10 @@ export default function Navbar() {
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        {user ? (
+        {user && (
           <>
             <span className="text-sm mr-2">{user.name}</span>
             <button onClick={logout} className="text-xs px-3 py-1 rounded bg-[#2563EB] text-white">Logout</button>
-          </>
-        ) : (
-          <>
-            <Link href="/auth/login" className="text-xs px-3 py-1 rounded border border-[#2563EB] text-[#2563EB]">Login</Link>
-            <Link href="/auth/register" className="text-xs px-3 py-1 rounded bg-[#2563EB] text-white">Register</Link>
           </>
         )}
       </div>
