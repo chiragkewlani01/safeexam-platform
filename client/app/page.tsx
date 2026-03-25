@@ -3,6 +3,7 @@
 
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
+import Link from "next/link";
 
 // Reusable Doodle Components
 const HighlightDoodle = ({ className }: { className?: string }) => (
@@ -90,16 +91,16 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <a href="/auth/login" className="w-full sm:w-auto">
+            <Link href="/auth/student-login" className="w-full sm:w-auto">
               <Button className="w-full sm:w-auto h-14 px-8 text-lg font-medium rounded-xl shadow-[0_8px_24px_-8px_rgba(37,99,235,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(37,99,235,0.6)] hover:-translate-y-0.5 transition-all duration-300">
-                Get Started
+                Join Exam
               </Button>
-            </a>
-            <a href="/auth/register" className="w-full sm:w-auto">
+            </Link>
+            <Link href="/auth/admin-login" className="w-full sm:w-auto">
               <Button variant="outline" className="w-full sm:w-auto h-14 px-8 text-lg font-medium rounded-xl border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300">
-                Create Account
+                Create Exam
               </Button>
-            </a>
+            </Link>
           </div>
 
           {/* Hand drawn arrow pointing to CTA on large screens */}
@@ -444,11 +445,16 @@ export default function HomePage() {
             <p className="text-gray-600 dark:text-gray-400 text-lg mb-10 max-w-xl mx-auto relative z-10">
                No setup. No complexity. Start conducting completely secure, monitored exams in under 2 minutes.
             </p>
-            <a href="/auth/login" className="relative z-10">
-               <Button className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
-                  Deploy SafeExam Now
-               </Button>
-            </a>
+            <Link href="/auth/student-login" className="relative z-10">
+              <Button className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+                Join Exam
+              </Button>
+            </Link>
+            <Link href="/auth/admin-login" className="relative z-10 ml-4">
+              <Button variant="outline" className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl hover:scale-105 transition-transform duration-300">
+                Create Exam
+              </Button>
+            </Link>
             
             <div className="mt-8 text-sm text-gray-400 flex items-center justify-center gap-2 relative z-10">
                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
