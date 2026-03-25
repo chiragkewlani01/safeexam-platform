@@ -3,12 +3,11 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..models.user import User, UserRole
-from ..schemas.user import UserCreate, AdminLoginRequest, UserResponse, GoogleTokenRequest
+from ..schemas.user import AdminLoginRequest, UserResponse
 from ..core.config import settings
 import bcrypt
 import secrets
 from typing import Optional
-import json
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import requests
@@ -24,41 +23,25 @@ OAUTH_STATE_STORE = {}
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     """Get current authenticated user from session cookie"""
-    try:
-        # Extract session token from cookies
-        session_token = request.cookies.get("session_token")
-        print(f"DEBUG: Received session token: {session_token[:30] if session_token else 'None'}...")
-        print(f"DEBUG: Available sessions: {len(SESSION_STORE)}")
-        
-        if not session_token:
-            print("DEBUG: No session token found in cookies")
-            return None
-        
-        # Check if session exists
-        if session_token not in SESSION_STORE:
-            print(f"DEBUG: Session token not found in store")
-            print(f"DEBUG: Available tokens: {list(SESSION_STORE.keys())[:3]}")  # Show first 3 for debugging
-            return None
-        
-        session_data = SESSION_STORE[session_token]
-        print(f"DEBUG: Session data found: {session_data}")
-        
-        # Check if session is expired
-        if datetime.utcnow() > session_data["expires_at"]:
-            print("DEBUG: Session expired")
-            del SESSION_STORE[session_token]
-            return None
-        
-        # Get user from database
-        user = db.query(User).filter(User.id == session_data["user_id"]).first()
-        print(f"DEBUG: User found in DB: {user.email if user else 'None'}")
-        return user
-        
-    except Exception as e:
-        print(f"DEBUG: Error getting current user: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    # Extract session token from cookies
+    session_token = request.cookies.get("session_token")
+
+    if not session_token:
         return None
+
+    # Check if session exists
+    if session_token not in SESSION_STORE:
+        return None
+
+    session_data = SESSION_STORE[session_token]
+
+    # Check if session is expired
+    if datetime.utcnow() > session_data["expires_at"]:
+        del SESSION_STORE[session_token]
+        return None
+
+    # Get user from database
+    return db.query(User).filter(User.id == session_data["user_id"]).first()
 
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -80,82 +63,30 @@ def set_session_cookie(response: Response, user_id: int):
         "expires_at": datetime.utcnow() + timedelta(days=30),
     }
     
-    print(f"DEBUG: Setting session cookie with token: {session_token}")
-    print(f"DEBUG: Session store now has {len(SESSION_STORE)} sessions")
-    
     response.set_cookie(
         "session_token",
         session_token,
         max_age=30 * 24 * 60 * 60,
-        httponly=False,  # Allow JS access temporarily for cross-origin
-        secure=False,  # Set to True in production with HTTPS
-        samesite="none",  # Allow cross-site
-        domain="localhost",
+        httponly=True,
+        secure=False,
+        samesite="lax",
     )
-
-@router.post("/google", response_model=UserResponse)
-def google_login(request: GoogleTokenRequest, response: Response, db: Session = Depends(get_db)):
-    """
-    Google OAuth login for students
-    
-    In production: verify token with Google API
-    For demo: accept token and extract email safely
-    """
-    try:
-        # Demo: Extract email from token or create unique student
-        # In production: call Google API to verify and get user info
-        # For now, create a unique student based on token hash
-        
-        token_hash = hash_password(request.token)[:20]  # Use first 20 chars of hash
-        email = f"student-{token_hash}@safeexam.local"
-        
-        # Check if user exists
-        existing_user = db.query(User).filter(User.email == email).first()
-        
-        if existing_user:
-            user = existing_user
-        else:
-            # Create new student user
-            user = User(
-                email=email,
-                name="Student",
-                role=UserRole.STUDENT
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        
-        # Set session cookie
-        set_session_cookie(response, user.id)
-        
-        return user
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google login failed: {str(e)}"
-        )
 
 @router.get("/google/login")
 def google_oauth_login():
-    """
-    Initiate Google OAuth flow
-    Redirects to Google's OAuth consent screen
-    """
-    if not settings.GOOGLE_CLIENT_ID:
+    """Initiate Google OAuth flow and redirect to consent screen."""
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Google OAuth not configured"
+            detail="Google OAuth is not configured. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
         )
-    
-    # Generate state for CSRF protection
+
     state = secrets.token_urlsafe(32)
     OAUTH_STATE_STORE[state] = {
         "created_at": datetime.utcnow(),
         "expires_at": datetime.utcnow() + timedelta(minutes=10),
     }
-    
-    # Google OAuth authorization URL
+
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": "http://localhost:8000/api/v1/auth/google/callback",
@@ -163,126 +94,105 @@ def google_oauth_login():
         "scope": "openid email profile",
         "state": state,
         "access_type": "offline",
+        "prompt": "select_account",
     }
-    
+
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
     return RedirectResponse(url=auth_url)
+
 
 @router.get("/google/callback")
 def google_oauth_callback(
     code: str,
     state: str,
-    response: Response,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    Handle Google OAuth callback
-    Exchanges authorization code for tokens and creates/updates user
-    """
-    
-    # Verify state for CSRF protection
+    """Handle Google callback, create/fetch student, set session cookie, redirect to dashboard."""
     if state not in OAUTH_STATE_STORE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid OAuth state"
+            detail="Invalid OAuth state",
         )
-    
+
     state_data = OAUTH_STATE_STORE[state]
     if datetime.utcnow() > state_data["expires_at"]:
         del OAUTH_STATE_STORE[state]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OAuth state expired"
+            detail="OAuth state expired",
         )
-    
+
     del OAUTH_STATE_STORE[state]
-    
+
     try:
-        # Exchange authorization code for tokens
-        token_url = "https://oauth2.googleapis.com/token"
-        token_data = {
-            "code": code,
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": "http://localhost:8000/api/v1/auth/google/callback",
-            "grant_type": "authorization_code",
-        }
-        
-        token_response = requests.post(token_url, data=token_data)
+        token_response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": "http://localhost:8000/api/v1/auth/google/callback",
+                "grant_type": "authorization_code",
+            },
+            timeout=15,
+        )
         token_response.raise_for_status()
         tokens = token_response.json()
-        
-        # Get user info from Google
-        userinfo_url = "https://openidconnect.googleapis.com/v1/userinfo"
-        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
-        userinfo_response = requests.get(userinfo_url, headers=headers)
+
+        userinfo_response = requests.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+            timeout=15,
+        )
         userinfo_response.raise_for_status()
         userinfo = userinfo_response.json()
-        
-        # Extract user data
+
         email = userinfo.get("email")
-        name = userinfo.get("name", "Student")
-        google_id = userinfo.get("sub")  # Google's unique user ID
-        
+        name = userinfo.get("name") or "Student"
+
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Could not get email from Google"
+                detail="Unable to fetch email from Google profile",
             )
-        
-        # Check if user exists
-        existing_user = db.query(User).filter(User.email == email).first()
-        
-        if existing_user:
-            user = existing_user
-            # Update name if it changed
-            if name and user.name != name:
-                user.name = name
-                db.commit()
-                db.refresh(user)
-        else:
-            # Create new student user from Google
-            user = User(
-                email=email,
-                name=name,
-                role=UserRole.STUDENT
+
+        user = db.query(User).filter(User.email == email).first()
+        if user and user.role != UserRole.STUDENT:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This email is registered as admin. Use admin login.",
             )
+
+        if not user:
+            user = User(email=email, name=name, role=UserRole.STUDENT)
             db.add(user)
             db.commit()
             db.refresh(user)
-        
-        # Set session cookie
+        elif user.name != name:
+            user.name = name
+            db.commit()
+
         session_token = secrets.token_urlsafe(32)
         SESSION_STORE[session_token] = {
             "user_id": user.id,
             "created_at": datetime.utcnow(),
             "expires_at": datetime.utcnow() + timedelta(days=30),
         }
-        
-        print(f"DEBUG: Created session: {session_token}")
-        
-        # Build a redirect URL with session token in query string
-        redirect_url = f"http://localhost:3000/dashboard?session_token={session_token}"
-        response.set_cookie(
+
+        redirect = RedirectResponse(url="http://localhost:3000/dashboard")
+        redirect.set_cookie(
             "session_token",
             session_token,
             max_age=30 * 24 * 60 * 60,
-            httponly=False,
+            httponly=True,
             secure=False,
             samesite="lax",
-            domain="localhost",
         )
-        return RedirectResponse(url=redirect_url)
-        
-    except requests.RequestException as e:
+        return redirect
+    except requests.RequestException:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Failed to exchange OAuth code: {str(e)}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google OAuth failed: {str(e)}"
+            detail="Google OAuth failed during token/userinfo exchange",
         )
 
 @router.post("/admin-login", response_model=UserResponse)
@@ -353,7 +263,11 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     return current_user
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
     """Logout user and clear session"""
+    session_token = request.cookies.get("session_token")
+    if session_token and session_token in SESSION_STORE:
+        del SESSION_STORE[session_token]
+
     response.delete_cookie("session_token")
     return {"message": "Logged out successfully"}

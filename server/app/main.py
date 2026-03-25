@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from .core.config import settings
 from .core.database import Base, engine
+from .models import User, Exam, Question
 from .api import auth, exams
 
 # Create tables
