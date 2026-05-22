@@ -54,7 +54,10 @@ Critical design choice — BFF (Backend-for-Frontend):
 The browser never calls the Render backend directly.
 All API traffic goes to same-origin /api/v1/... on the Next.js app.
 client/app/api/v1/[...path]/route.ts proxies requests to API_BASE_URL, forwards cookies, and normalizes redirects so session cookies are not lost on cross-origin redirects.
+
+```txt
 4. Repository Structure
+
 safeexam-platform/
 ├── client/          # Next.js frontend (~185 files)
 │   ├── app/         # Routes (App Router)
@@ -65,13 +68,14 @@ safeexam-platform/
 │
 └── server/          # FastAPI backend (~105 app files + migrations)
     ├── app/
-    │   ├── api/     # Route handlers
-    │   ├── core/    # config, database, auth, dependencies
-    │   ├── models/  # SQLAlchemy models
-    │   ├── schemas/ # Pydantic request/response
-    │   ├── services/# Business logic (monitoring, QIE, coding, sessions)
+    │   ├── api/         # Route handlers
+    │   ├── core/        # config, database, auth, dependencies
+    │   ├── models/      # SQLAlchemy models
+    │   ├── schemas/     # Pydantic request/response
+    │   ├── services/    # Business logic (monitoring, QIE, coding, sessions)
     │   └── middlewares/ # rate limit, CSRF (optional)
-    └── migrations/  # SQL migration scripts
+    └── migrations/      # SQL migration scripts
+```
 5. User Roles & Authentication
 5.1 Roles
 Role	Login method	Primary UI
